@@ -14,6 +14,61 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
+class Dataset_EEG():
+    def __init__(self, root_path, flag='TRAIN', sub_list=None, sub_dep=False, is_use_one_sub=True, test_size=0.2):
+        self.root_path = root_path
+        self.flag = flag
+        self.class_names = ['positive', 'neutral', 'negative']
+        if sub_list is not None:
+            data_file_list = ['sub' + str(sub_id) + '_eeg_data.npy' for sub_id in sub_list]
+            labels_file_list = ['sub' + str(sub_id) + '_img_labels.npy' for sub_id in sub_list]
+            times_file_list = ['sub' + str(sub_id) + '_timestamps.npy' for sub_id in sub_list]
+        elif is_use_one_sub:
+            data_file_list = ['sub19_eeg_data.npy']
+            labels_file_list = ['sub19_img_labels.npy']
+            times_file_list = ['sub19_timestamps.npy']
+        else:
+            data_file_list = glob.glob(os.path.join(root_path, 'sub*_eeg_data.npy'))
+            labels_file_list = glob.glob(os.path.join(root_path, 'sub*_img_labels.npy'))
+            times_file_list = glob.glob(os.path.join(root_path, 'sub*_timestamps.npy'))
+        if not sub_dep:
+            all_eeg_data = np.concatenate([np.load(os.path.join(root_path, data_file)) for data_file in data_file_list],
+                axis=0)
+            all_img_labels = np.concatenate([np.load(os.path.join(root_path, labels_file)) for labels_file in labels_file_list],
+                axis=0)
+            all_timestamps = np.concatenate([np.load(os.path.join(root_path, times_file)) for times_file in times_file_list],
+                axis=0)
+            self.feature_df = all_eeg_data
+            all_eeg_data = np.transpose(all_eeg_data, (0, 2, 1))
+            self.max_seq_len = all_eeg_data.shape[1]
+            train_size = int((1 - test_size) * len(all_eeg_data))
+            if flag == 'TRAIN':
+                self.eeg_data = all_eeg_data[:train_size]
+                self.img_labels = all_img_labels[:train_size]
+                self.timestamps = all_timestamps[:train_size]
+            if flag == 'TEST':
+                self.eeg_data = all_eeg_data[train_size:]
+                self.img_labels = all_img_labels[train_size:]
+                self.timestamps = all_timestamps[train_size:]
+
+    def instance_norm(self, case):
+        if self.root_path.count('EthanolConcentration') > 0:  # special process for numerical stability
+            mean = case.mean(0, keepdim=True)
+            case = case - mean
+            stdev = torch.sqrt(torch.var(case, dim=1, keepdim=True, unbiased=False) + 1e-5)
+            case /= stdev
+            return case
+        else:
+            return case
+
+    def __len__(self):
+        return len(self.eeg_data)
+
+    def __getitem__(self, idx):
+        data, label, data_stamp = self.instance_norm(torch.from_numpy(self.eeg_data[idx])), \
+            torch.LongTensor([self.img_labels[idx]]),\
+            torch.ones(self.max_seq_len)
+        return data, label, data_stamp
 
 class Dataset_ETT_hour(Dataset):
     def __init__(self, root_path, flag='train', size=None,
@@ -653,6 +708,7 @@ class UEAloader(Dataset):
         if flag is not None:
             data_paths = list(filter(lambda x: re.search(flag, x), data_paths))
         input_paths = [p for p in data_paths if os.path.isfile(p) and p.endswith('.ts')]
+        pattern = os.path.join(root_path, '*.ts')
         if len(input_paths) == 0:
             raise Exception("No .ts files found using pattern: '{}'".format(pattern))
 
