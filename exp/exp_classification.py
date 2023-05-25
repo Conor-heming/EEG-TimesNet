@@ -9,6 +9,7 @@ import time
 import warnings
 import numpy as np
 import pdb
+import matplotlib.pyplot as plt
 
 warnings.filterwarnings('ignore')
 
@@ -91,6 +92,11 @@ class Exp_Classification(Exp_Basic):
 
         model_optim = self._select_optimizer()
         criterion = self._select_criterion()
+        train_loss_list = []
+        valid_loss_list = []
+        test_loss_list = []
+        valid_accuracy_list = []
+        test_accuracy_list = []
 
         for epoch in range(self.args.train_epochs):
             iter_count = 0
@@ -131,6 +137,11 @@ class Exp_Classification(Exp_Basic):
             print(
                 "Epoch: {0}, Steps: {1} | Train Loss: {2:.3f} Vali Loss: {3:.3f} Vali Acc: {4:.3f} Test Loss: {5:.3f} Test Acc: {6:.3f}"
                 .format(epoch + 1, train_steps, train_loss, vali_loss, val_accuracy, test_loss, test_accuracy))
+            train_loss_list.append(train_loss)
+            valid_loss_list.append(vali_loss)
+            test_loss_list.append(test_loss)
+            valid_accuracy_list.append(val_accuracy)
+            test_accuracy_list.append(test_accuracy)
             early_stopping(-val_accuracy, self.model, path)
             if early_stopping.early_stop:
                 print("Early stopping")
@@ -140,6 +151,23 @@ class Exp_Classification(Exp_Basic):
 
         best_model_path = path + '/' + 'checkpoint.pth'
         self.model.load_state_dict(torch.load(best_model_path))
+        # 绘制loss随epoch的变化图
+        plt.figure()
+        plt.plot(np.arange(len(train_loss_list)), train_loss_list, label='train loss')
+        plt.plot(np.arange(len(valid_loss_list)), valid_loss_list, label='valid loss')
+        plt.plot(np.arange(len(test_loss_list)), test_loss_list, label='test loss')
+        plt.legend()
+        plt.savefig(path + '/' + 'loss.png')
+        plt.show()
+        plt.close()
+        # 绘制accuracy随epoch的变化图
+        plt.figure()
+        plt.plot(np.arange(len(valid_accuracy_list)), valid_accuracy_list, label='valid accuracy')
+        plt.plot(np.arange(len(test_accuracy_list)), test_accuracy_list, label='test accuracy')
+        plt.legend()
+        plt.savefig(path + '/' + 'accuracy.png')
+        plt.show()
+        plt.close()
 
         return self.model
 
