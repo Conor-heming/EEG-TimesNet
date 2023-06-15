@@ -11,8 +11,59 @@ from data_provider.m4 import M4Dataset, M4Meta
 from data_provider.uea import subsample, interpolate_missing, Normalizer
 from sktime.datasets import load_from_tsfile_to_dataframe
 import warnings
+import torch
+import scipy.io as scio
 
 warnings.filterwarnings('ignore')
+
+class SEEDEEGLoader(Dataset):
+    def __init__(self, root_path, flag, sub_dep_indep, sub_id):
+        super(SEEDEEGLoader, self).__init__()
+        self.load_path = root_path
+        if sub_dep_indep == 'dep':
+            self.data, self.time_stamps, self.label = self.load_sub_dependent(sub_id, flag)
+        elif sub_dep_indep == 'indep':
+            pass
+
+    def load_sub_dependent(self, sub_id, flag):
+        labels = scio.loadmat(os.path.join(self.load_path, 'label.mat'))['label'][0]
+        data_files = os.listdir(self.load_path)
+        sub_files = [file for file in data_files if file.split('_')[0] == str(sub_id)]
+        trials = np.arange(1, 16)
+        if flag == 'TRAIN':
+            trials = trials[:9]
+        elif flag == 'TEST':
+            trials = trials[9:]
+        data_list = []
+        time_stamps_list = []
+        label_list = []
+        for file in sub_files:
+            if file.endswith('.mat') and file != 'label.mat':
+                data = scio.loadmat(os.path.join(self.load_path, file))
+                experiment_name = file.split('.')[0]
+                for key in data.keys():
+                    trial = key.split('_')[-1][3:]
+                    if 'eeg' not in key or int(trial) not in trials:
+                        continue
+                    cur_trial_data = data[key]
+                    length = len(cur_trial_data[0])
+                    pos = 0
+                    while pos + 200 <= length:
+                        data_list.append(torch.from_numpy(cur_trial_data[:, pos:pos + 200]).transpose(0, 1))
+                        raw_label = labels[int(key.split('_')[-1][3:]) - 1]  # 截取片段对应的 label，-1, 0, 1
+                        label_list.append(raw_label + 1)
+                        time_stamps_list.append(torch.arange(pos, pos + 200) / 128)
+                        pos += 200
+        eeg_data = torch.stack(data_list, dim=0)
+        time_stamps = torch.stack(time_stamps_list, dim=0)
+        labels = torch.LongTensor(label_list)
+        return eeg_data, labels, time_stamps
+
+    def __getitem__(self, ind):
+        return self.data[ind], self.time_stamps[ind], self.label[ind]
+
+    def __len__(self):
+        return len(self.label)
 
 class Dataset_EEG():
     def __init__(self, root_path, flag='TRAIN', sub_list=None, sub_dep=False, is_use_one_sub=True, test_size=0.2):
@@ -69,6 +120,8 @@ class Dataset_EEG():
             torch.LongTensor([self.img_labels[idx]]),\
             torch.ones(self.max_seq_len)
         return data, label, data_stamp
+
+
 
 class Dataset_ETT_hour(Dataset):
     def __init__(self, root_path, flag='train', size=None,

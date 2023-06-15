@@ -198,6 +198,22 @@ class Model(nn.Module):
         output = self.projection(output)  # (batch_size, num_classes)
         return output
 
+    def classification_temporal(self, x, x_mark):
+        # embedding
+        enc_out = self.enc_embedding(x, x_mark)
+        # TimesNet
+        for i in range(self.layer):
+            enc_out = self.layer_norm(self.model[i](enc_out))
+
+        # Output
+        # the output transformer encoder/decoder embeddings don't include non-linearity
+        output = self.act(enc_out)
+        output = self.dropout(output)
+        # (batch_size, seq_length * d_model)
+        output = output.reshape(output.shape[0], -1)
+        output = self.projection(output)  # (batch_size, num_classes)
+        return output
+
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
             dec_out = self.forecast(x_enc, x_mark_enc, x_dec, x_mark_dec)
@@ -212,4 +228,7 @@ class Model(nn.Module):
         if self.task_name == 'classification':
             dec_out = self.classification(x_enc, x_mark_enc)
             return dec_out  # [B, N]
+        if self.task_name == 'classification_temporal':
+            dec_out = self.classification_temporal(x_enc, x_mark_enc)
+            return dec_out
         return None
