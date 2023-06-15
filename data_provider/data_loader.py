@@ -60,7 +60,7 @@ class SEEDEEGLoader(Dataset):
         eeg_data = torch.stack(data_list, dim=0)
         self.feature_df = eeg_data
         eeg_data = eeg_data.transpose(1, 2)
-        time_stamps = torch.stack(time_stamps_list, dim=0)
+        time_stamps = torch.stack(time_stamps_list, dim=0).unsqueeze(-1)
         labels = torch.LongTensor(label_list)
         return eeg_data, labels, time_stamps
 
