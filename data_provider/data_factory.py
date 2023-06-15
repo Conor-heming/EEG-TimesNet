@@ -77,6 +77,7 @@ def data_provider(args, flag):
             flag=flag,
             sub_dep_indep=args.sub_dep_indep,
             sub_id=args.sub_id,
+            window_size=args.window_size,
         )
         data_loader = DataLoader(
             data_set,

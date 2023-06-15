@@ -38,6 +38,7 @@ if __name__ == '__main__':
     # SEED dataset
     parser.add_argument('--sub_dep_indep', type=str, default='dep', help='subject-dependent or subject-independent')
     parser.add_argument('--sub_id', type=int, default=1, help='subject id if subject dependent')
+    parser.add_argument('--window_size', type=int, default=200, help='window size for sample split')
 
     # forecasting task
     parser.add_argument('--seq_len', type=int, default=96, help='input sequence length')
@@ -54,7 +55,7 @@ if __name__ == '__main__':
     # model define
     parser.add_argument('--top_k', type=int, default=5, help='for TimesBlock')
     parser.add_argument('--num_kernels', type=int, default=6, help='for Inception')
-    parser.add_argument('--enc_in', type=int, default=62, help='encoder input size')  # 7->62
+    parser.add_argument('--enc_in', type=int, default=7, help='encoder input size')  # 7->62
     parser.add_argument('--dec_in', type=int, default=7, help='decoder input size')
     parser.add_argument('--c_out', type=int, default=7, help='output size')
     parser.add_argument('--d_model', type=int, default=512, help='dimension of model')

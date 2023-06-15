@@ -17,9 +17,12 @@ import scipy.io as scio
 warnings.filterwarnings('ignore')
 
 class SEEDEEGLoader(Dataset):
-    def __init__(self, root_path, flag, sub_dep_indep, sub_id):
+    def __init__(self, root_path, flag, sub_dep_indep, sub_id, window_size):
         super(SEEDEEGLoader, self).__init__()
+        self.window_size = window_size
+        self.max_seq_len = window_size
         self.load_path = root_path
+        self.class_names = [0, 1, 2]
         if sub_dep_indep == 'dep':
             self.data, self.time_stamps, self.label = self.load_sub_dependent(sub_id, flag)
         elif sub_dep_indep == 'indep':
@@ -48,13 +51,15 @@ class SEEDEEGLoader(Dataset):
                     cur_trial_data = data[key]
                     length = len(cur_trial_data[0])
                     pos = 0
-                    while pos + 200 <= length:
-                        data_list.append(torch.from_numpy(cur_trial_data[:, pos:pos + 200]).transpose(0, 1))
+                    while pos + self.window_size <= length:
+                        data_list.append(torch.from_numpy(cur_trial_data[:, pos:pos + self.window_size]))
                         raw_label = labels[int(key.split('_')[-1][3:]) - 1]  # 截取片段对应的 label，-1, 0, 1
                         label_list.append(raw_label + 1)
-                        time_stamps_list.append(torch.arange(pos, pos + 200) / 128)
-                        pos += 200
+                        time_stamps_list.append(torch.arange(pos, pos + self.window_size) / 128)
+                        pos += self.window_size
         eeg_data = torch.stack(data_list, dim=0)
+        self.feature_df = eeg_data
+        eeg_data = eeg_data.transpose(1, 2)
         time_stamps = torch.stack(time_stamps_list, dim=0)
         labels = torch.LongTensor(label_list)
         return eeg_data, labels, time_stamps

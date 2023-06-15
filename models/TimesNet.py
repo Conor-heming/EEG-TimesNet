@@ -94,7 +94,7 @@ class Model(nn.Module):
         if self.task_name == 'imputation' or self.task_name == 'anomaly_detection':
             self.projection = nn.Linear(
                 configs.d_model, configs.c_out, bias=True)
-        if self.task_name == 'classification':
+        if self.task_name == 'classification' or self.task_name == 'classification_temporal':
             self.act = F.gelu
             self.dropout = nn.Dropout(configs.dropout)
             self.projection = nn.Linear(
