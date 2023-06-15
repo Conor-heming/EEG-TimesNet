@@ -84,6 +84,8 @@ class Model(nn.Module):
                                     for _ in range(configs.e_layers)])
         self.enc_embedding = DataEmbedding(configs.enc_in, configs.d_model, configs.embed, configs.freq,
                                            configs.dropout)
+        self.eeg_time_embedding = nn.Conv1d(in_channels=configs.enc_in + 1, out_channels=configs.d_model, kernel_size=3,
+                                            padding=1, padding_mode='circular', bias=False)
         self.layer = configs.e_layers
         self.layer_norm = nn.LayerNorm(configs.d_model)
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
@@ -200,7 +202,8 @@ class Model(nn.Module):
 
     def classification_temporal(self, x, x_mark):
         # embedding
-        enc_out = self.enc_embedding(x, x_mark)
+        x_concat = torch.concat([x, x_mark], dim=-1)  # [B,T,C]
+        enc_out = self.eeg_time_embedding(x_concat.permute(0, 2, 1)).transpose(1, 2)
         # TimesNet
         for i in range(self.layer):
             enc_out = self.layer_norm(self.model[i](enc_out))
