@@ -99,8 +99,10 @@ class Model(nn.Module):
         if self.task_name == 'classification' or self.task_name == 'classification_temporal':
             self.act = F.gelu
             self.dropout = nn.Dropout(configs.dropout)
-            self.projection = nn.Linear(
-                configs.d_model * configs.seq_len, configs.num_class)
+            self.projection = nn.Sequential(
+                nn.Linear(configs.d_model * configs.seq_len, 256),
+                nn.Linear(256, configs.num_class)
+            )
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
         # Normalization from Non-stationary Transformer
