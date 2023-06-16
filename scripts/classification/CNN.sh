@@ -1,0 +1,1 @@
+python run.py --task_name classification_temporal --is_training 1 --root_path D:\data\SEED\Preprocessed_EEG --model_id EEG_emotion_cnn --model CNN --data SEEDeeg --batch_size 16  --des 'Exp' --itr 1 --learning_rate 0.001 --train_epochs 30 --patience 100
