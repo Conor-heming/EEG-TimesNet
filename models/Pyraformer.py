@@ -18,6 +18,7 @@ class Model(nn.Module):
         self.task_name = configs.task_name
         self.pred_len = configs.pred_len
         self.d_model = configs.d_model
+        self.seq_len = configs.seq_len
 
         if self.task_name == 'short_term_forecast':
             window_size = [2,2]
@@ -34,6 +35,11 @@ class Model(nn.Module):
             self.dropout = nn.Dropout(configs.dropout)
             self.projection = nn.Linear(
                 (len(window_size)+1)*self.d_model * configs.seq_len, configs.num_class)
+        elif self.task_name == 'classification_temporal':
+            self.act = torch.nn.functional.gelu
+            self.dropout = nn.Dropout(configs.dropout)
+            self.projection = nn.Linear(
+                (len(window_size)+1)*self.d_model, configs.num_class)
 
     def long_forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
         enc_out = self.encoder(x_enc, x_mark_enc)[:, -1, :]
@@ -81,6 +87,18 @@ class Model(nn.Module):
 
         return output
 
+    def classification_temporal(self, x, x_mark):
+        # embedding
+        enc_out = self.encoder(x, x_mark_enc=x_mark)
+        # Output
+        output = self.act(enc_out)
+        output = self.dropout(output)
+
+        output = output.reshape(output.shape[0], self.seq_len, -1)
+        output = self.projection(output)  # (batch_size, seq_len, num_classes)
+        output = torch.max(output, dim=1)[0]  # (batch_size, num_classes
+        return output
+
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
         if self.task_name == 'long_term_forecast':
             dec_out = self.long_forecast(x_enc, x_mark_enc, x_dec, x_mark_dec)
@@ -98,4 +116,7 @@ class Model(nn.Module):
         if self.task_name == 'classification':
             dec_out = self.classification(x_enc, x_mark_enc)
             return dec_out  # [B, N]
+        if self.task_name == 'classification_temporal':
+            dec_out = self.classification_temporal(x_enc, x_mark_enc)
+            return dec_out
         return None

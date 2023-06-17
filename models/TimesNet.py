@@ -6,6 +6,7 @@ from layers.Embed import DataEmbedding
 from layers.Conv_Blocks import Inception_Block_V1
 
 
+
 def FFT_for_Period(x, k=2):
     # [B, T, C]
     xf = torch.fft.rfft(x, dim=1)

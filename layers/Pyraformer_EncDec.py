@@ -100,7 +100,7 @@ class EncoderLayer(nn.Module):
 class Encoder(nn.Module):
     """ A encoder model with self attention mechanism. """
 
-    def __init__(self, configs, window_size, inner_size):
+    def __init__(self, configs, window_size, inner_size, embed_type='timeF', freq='a'):
         super().__init__()
 
         d_bottleneck = configs.d_model//4
@@ -114,7 +114,7 @@ class Encoder(nn.Module):
         ])  # naive pyramid attention
 
         self.enc_embedding = DataEmbedding(
-            configs.enc_in, configs.d_model, configs.dropout)
+            configs.enc_in, configs.d_model,  embed_type=embed_type, freq=freq, dropout=configs.dropout,)
         self.conv_layers = Bottleneck_Construct(
             configs.d_model, window_size, d_bottleneck)
 

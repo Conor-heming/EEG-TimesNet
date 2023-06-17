@@ -1,3 +1,6 @@
 classification_temporal_EEG_emotion_cnn_CNN_SEEDeeg_ftM_sl96_ll48_pl96_dm512_nh8_el2_dl1_df2048_fc1_ebtimeF_dtTrue_'Exp'_0  
 accuracy:0.5924855491329479
 
+classification_temporal_EEG_emotion_pyraformer_Pyraformer_SEEDeeg_ftM_sl96_ll48_pl96_dm128_nh8_el3_dl1_df256_fc1_ebtimeF_dtTrue_'Exp'_0  
+accuracy:0.3340558766859345
+
